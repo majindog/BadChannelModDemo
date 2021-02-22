@@ -7,6 +7,9 @@ Bad Channel Modulation Demo is an open-source “3-voice stereo” modulation mo
 
 Written in C++ using the JUCE API. Available for all platforms in VST3, AU, and AAX formats.
 
+**-------**
+
+
 ### CONTROLS:
 **RATE:**
 LFO frequency in hertz.
