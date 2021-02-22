@@ -9,7 +9,6 @@ Written in C++ using the JUCE API. Available for all platforms in VST3, AU, and 
 
 **-------------------------------------------------------------------------------------------**
 
-
 ### CONTROLS:
 **RATE:**
 LFO frequency in hertz.
@@ -27,5 +26,6 @@ Produces cascading and decaying echoes.
 Intensity of modulation effect.
 
 **-------------------------------------------------------------------------------------------**
+
 
 ### DOG MAGIC AUDIO 2021 - SOFTWARE FOR TONAL ANNIHILATION ###
