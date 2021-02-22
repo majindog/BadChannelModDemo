@@ -26,6 +26,6 @@ Produces cascading and decaying echoes.
 **DEPTH:**
 Intensity of modulation effect.
 
-
+**-------------------------------------------------------------------------------------------**
 
 ### DOG MAGIC AUDIO 2021 - SOFTWARE FOR TONAL ANNIHILATION ###
