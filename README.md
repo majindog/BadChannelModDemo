@@ -10,13 +10,19 @@ Written in C++ using the JUCE API. Available for all platforms in VST3, AU, and 
 ## CONTROLS:
 **RATE:**
 LFO frequency in hertz.
-#### WIDTH: ####
+
+**WIDTH:**
 Modulation amount in ms.
-#### DELAY: ####
+
+**DELAY:**
 Time in ms between original and modulated signals.
-#### FEEDBACK: ####
+
+**FEEDBACK:**
 Produces cascading and decaying echoes.
-#### DEPTH: ####
+
+**DEPTH:**
 Intensity of modulation effect.
+
+
 
 **DOG MAGIC AUDIO 2021 - SOFTWARE FOR TONAL ANNIHILATION**
