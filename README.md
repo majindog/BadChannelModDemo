@@ -14,5 +14,5 @@ Written in C++ using the JUCE API. Available for all platforms in VST3, AU, and 
 **FEEDBACK** .. Produces cascading and decaying echoes.
 **DEPTH** .. intensity of modulation effect.
 
-**DOG MAGIC AUDIO 2021**
+**DOG MAGIC AUDIO 2021 - **
 **SOFTWARE FOR TONAL ANNIHILATION**
