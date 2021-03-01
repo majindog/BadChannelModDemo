@@ -28,6 +28,11 @@ BadChannelModDemoAudioProcessor::~BadChannelModDemoAudioProcessor()
 //==============================================================================
 void BadChannelModDemoAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+    // delay line size set
+    mMod1 = dsp::DelayLine<float, dsp::DelayLineInterpolationTypes::Lagrange3rd>(sampleRate);
+    mMod2 = dsp::DelayLine<float, dsp::DelayLineInterpolationTypes::Lagrange3rd>(sampleRate);
+    mMod3 = dsp::DelayLine<float, dsp::DelayLineInterpolationTypes::Lagrange3rd>(sampleRate);
+    
     // dsp spec
     dsp::ProcessSpec spec;
     spec.maximumBlockSize = samplesPerBlock;
@@ -42,17 +47,17 @@ void BadChannelModDemoAudioProcessor::prepareToPlay (double sampleRate, int samp
     mMod2.prepare(spec);
     mMod3.prepare(spec);
     
-    lfoPhase = 0.0f;
-    feedbackLeft = 0.0f;
-    feedbackRight = 0.0f;
-    inverseSampleRate = 1.0f / sampleRate;
+    lfoPhaseL = 0.0f;
+    lfoPhaseR = 0.0f;
+    mFeedback = 0.0f;
+    invSampleRate = 1.0f / sampleRate;
     
     // smooth initialize
-    delaySmoothed.prepare (delayParam.get());
-    widthSmoothed.prepare (widthParam.get());
-    depthSmoothed.prepare (depthParam.get());
-    rateSmoothed.prepare (rateParam.get());
-    feedbackSmoothed.prepare (feedbackParam.get());
+    delaySmoothed.prepare (delayParam.get(), samplesPerBlock);
+    widthSmoothed.prepare (widthParam.get(), samplesPerBlock);
+    depthSmoothed.prepare (depthParam.get(), samplesPerBlock);
+    rateSmoothed.prepare (rateParam.get(), samplesPerBlock);
+    feedbackSmoothed.prepare (feedbackParam.get(), samplesPerBlock);
 }
 
 void BadChannelModDemoAudioProcessor::releaseResources()
@@ -71,49 +76,55 @@ void BadChannelModDemoAudioProcessor::processBlock (juce::AudioBuffer<float>& bu
 
     //======================================
     
-    float* leftChannel = buffer.getWritePointer(0);
-    float* rightChannel = buffer.getWritePointer(1);
+    for (int channel = 0; channel < totalNumInputChannels; ++channel) {
+        
+        // smooth set
+        delaySmoothed.setInc(channel);
+        widthSmoothed.setInc(channel);
+        depthSmoothed.setInc(channel);
+        rateSmoothed.setInc(channel);
+        feedbackSmoothed.setInc(channel);
+        
+        float* currentChan = buffer.getWritePointer (channel);
     
-    // smooth set
-    delaySmoothed.setParam(numSamples);
-    widthSmoothed.setParam(numSamples);
-    depthSmoothed.setParam(numSamples);
-    rateSmoothed.setParam(numSamples);
-    feedbackSmoothed.setParam(numSamples);
-    
-    for (int sample = 0; sample < numSamples; ++sample) {
+        for (int sample = 0; sample < numSamples; ++sample) {
+            
+            // smooth check
+            delaySmoothed.loopCheck(channel);
+            widthSmoothed.loopCheck(channel);
+            depthSmoothed.loopCheck(channel);
+            rateSmoothed.loopCheck(channel);
+            feedbackSmoothed.loopCheck(channel);
         
-        delaySmoothed.loopCheck();
-        widthSmoothed.loopCheck();
-        depthSmoothed.loopCheck();
-        rateSmoothed.loopCheck();
-        feedbackSmoothed.loopCheck();
+            float currentSamp = currentChan[sample];
+            float modOut = currentChan[sample];
+            float phaseOffset = 0.0f;
         
-        float leftSample = leftChannel[sample];
-        float rightSample = rightChannel[sample];
+            processMod (&mMod1, 0, channel, &phaseOffset, currentSamp, &modOut);
+            processMod (&mMod2, 1, channel, &phaseOffset, currentSamp, &modOut);
+            processMod (&mMod3, 2, channel, &phaseOffset, currentSamp, &modOut);
         
-        float outL = leftChannel[sample];
-        float outR = rightChannel[sample];
-        
-        float phaseOffset = 0.0f;
-        
-        processMod (&mMod1, 0, &phaseOffset, leftSample, rightSample, &outL, &outR);
-        processMod (&mMod2, 1, &phaseOffset, leftSample, rightSample, &outL, &outR);
-        processMod (&mMod3, 2, &phaseOffset, leftSample, rightSample, &outL, &outR);
-        
-        leftChannel[sample] = outL;
-        rightChannel[sample] = outR;
-        
-        lfoPhase += rateSmoothed.getCurrent() * inverseSampleRate;
-        if (lfoPhase >= 1.0f)
-            lfoPhase -= 1.0f;
+            currentChan[sample] = modOut;
+            
+            if (channel == 0) {
+                lfoPhaseL += rateSmoothed.getCurrent(channel) * invSampleRate;
+                if (lfoPhaseL >= 1.0f)
+                    lfoPhaseL -= 1.0f;
+            } else {
+                lfoPhaseR += rateSmoothed.getCurrent(channel) * invSampleRate;
+                if (lfoPhaseR >= 1.0f)
+                    lfoPhaseR -= 1.0f;
+            }
+        }
     }
     
+    // smooth check
     delaySmoothed.outCheck();
     widthSmoothed.outCheck();
     depthSmoothed.outCheck();
     rateSmoothed.outCheck();
     feedbackSmoothed.outCheck();
+    
 }
 
 float BadChannelModDemoAudioProcessor::lfo (float phase)
@@ -122,28 +133,30 @@ float BadChannelModDemoAudioProcessor::lfo (float phase)
 }
 
 void BadChannelModDemoAudioProcessor::processMod (dsp::DelayLine<float, dsp::DelayLineInterpolationTypes::Lagrange3rd> *dLine, int lineNumber,
-                                                  float *phaseOffset, float leftSample, float rightSample, float *outL, float *outR)
+                                                  int channel, float *phaseOffset, float sample, float *modOut)
 {
-    float delayMs = delaySmoothed.getCurrent() * 0.001f;
-    float widthMs = widthSmoothed.getCurrent() * 0.001f;
-    float lfoOut = lfo (lfoPhase + *phaseOffset);
+    float delayMs = delaySmoothed.getCurrent(channel) * 0.001f;
+    float widthMs = widthSmoothed.getCurrent(channel) * 0.001f;
+    float lfoOut;
+    float weight;
+    
+    if (channel == 0)
+        lfoOut = lfo (lfoPhaseL + *phaseOffset);
+    else
+        lfoOut = lfo (lfoPhaseR + *phaseOffset);
     
     float delayTimeSamples = (delayMs + widthMs * lfoOut) * (float)getSampleRate();
+    float dSample = dLine->popSample(channel, delayTimeSamples);
     
-    float dSampleL = dLine->popSample(0, delayTimeSamples);
-    float dSampleR = dLine->popSample(1, delayTimeSamples);
+    if (channel == 0)
+        weight = (float)lineNumber / 2.0f;
+    else
+        weight = 1.0f - ((float)lineNumber / 2.0f);
     
-    float weightL = (float)lineNumber / 2.0f;
-    float weightR = 1.0f - weightL;
+    *modOut += dSample * depthSmoothed.getCurrent(channel) * weight;
     
-    *outL += dSampleL * depthSmoothed.getCurrent() * weightL;
-    *outR += dSampleR * depthSmoothed.getCurrent() * weightR;
-    
-    feedbackLeft = feedbackSmoothed.getCurrent() * dSampleL;
-    feedbackRight = feedbackSmoothed.getCurrent() * dSampleR;
-    
-    dLine->pushSample(0, leftSample + feedbackLeft);
-    dLine->pushSample(1, rightSample + feedbackRight);
+    mFeedback = feedbackSmoothed.getCurrent(channel) * dSample;
+    dLine->pushSample(channel, sample + mFeedback);
     
     *phaseOffset += 1.0f / 3.0f;
 }
@@ -152,23 +165,23 @@ void BadChannelModDemoAudioProcessor::parameterChanged (const String &parameterI
 {
     if (parameterID == "Delay") {
         delayParam = newValue;
-        delaySmoothed.updateTarget(newValue);
+        delaySmoothed.update(newValue);
     }
     else if (parameterID == "Width") {
         widthParam = newValue;
-        widthSmoothed.updateTarget(newValue);
+        widthSmoothed.update(newValue);
     }
     else if (parameterID == "Depth") {
         depthParam = newValue;
-        depthSmoothed.updateTarget(newValue);
+        depthSmoothed.update(newValue);
     }
-    else if (parameterID == "Frequency") {
+    else if (parameterID == "Rate") {
         rateParam = newValue;
-        rateSmoothed.updateTarget(newValue);
+        rateSmoothed.update(newValue);
     }
     else if (parameterID == "Feedback") {
         feedbackParam = newValue;
-        feedbackSmoothed.updateTarget(newValue);
+        feedbackSmoothed.update(newValue);
     }
 }
 
@@ -177,7 +190,7 @@ AudioProcessorValueTreeState::ParameterLayout BadChannelModDemoAudioProcessor::c
     std::vector<std::unique_ptr<RangedAudioParameter>> params;
     
     params.push_back(std::make_unique<AudioParameterFloat>("Delay", "Delay", NormalisableRange<float>(1.0f, 50.0f, 0.01f), 5.0f, "ms"));
-    params.push_back(std::make_unique<AudioParameterFloat>("Width", "Width", NormalisableRange<float>(1.0f, 50.0f, 0.01), 20.0f, "Hz"));
+    params.push_back(std::make_unique<AudioParameterFloat>("Width", "Width", NormalisableRange<float>(1.0f, 50.0f, 0.01f), 20.0f, "Hz"));
     params.push_back(std::make_unique<AudioParameterFloat>("Depth", "Depth", 0.0f, 1.0f, 1.0f));
     params.push_back(std::make_unique<AudioParameterFloat>("Rate", "Rate", NormalisableRange<float>(0.03f, 10.0f, 0.01f), 0.2f, "Hz"));
     params.push_back(std::make_unique<AudioParameterFloat>("Feedback", "Feedback", 0.0f, 0.99f, 0.0f));

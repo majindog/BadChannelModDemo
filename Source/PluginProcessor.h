@@ -49,19 +49,19 @@ public:
     
     //============================================================================== MODULATION
     
-    dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Lagrange3rd> mMod1{96000};
-    dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Lagrange3rd> mMod2{96000};
-    dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Lagrange3rd> mMod3{96000};
+    dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Lagrange3rd> mMod1;
+    dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Lagrange3rd> mMod2;
+    dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Lagrange3rd> mMod3;
     
-    float lfoPhase;
-    float feedbackLeft;
-    float feedbackRight;
-    float inverseSampleRate;
+    float lfoPhaseL;
+    float lfoPhaseR;
+    float mFeedback;
+    float invSampleRate;
     float twoPi = 2.0f * M_PI;
     
     float lfo (float phase);
     void processMod (dsp::DelayLine<float, dsp::DelayLineInterpolationTypes::Lagrange3rd> *dLine, int lineNumber,
-                     float *phaseOffset, float leftSample, float rightSample, float *outL, float *outR);
+                     int channel, float *phaseOffset, float sample, float *modOut);
     
     AudioProcessorValueTreeState& getValueTreeState();
     void parameterChanged (const String &parameterID, float newValue) override;

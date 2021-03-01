@@ -4,51 +4,61 @@ class ParamSmoother
 {
 public:
     
-    void prepare (float initVal)
+    void prepare (float initVal, int nSamples)
     {
-        current = initVal;
+        currentL = initVal;
+        currentR = initVal;
         target = initVal;
-        localTarget = initVal;
+        numSamples = nSamples;
     }
     
-    void setParam (int numSamples)
+    void setInc (int channel)
     {
-        localTarget = target;
-        inc = (localTarget - current) / numSamples;
+        if (channel == 0)
+            incL = (target - currentL) / numSamples;
+        else
+            incR = (target - currentR) / numSamples;
     }
     
-    void loopCheck()
+    void loopCheck (int channel)
     {
-        if (localTarget != current)
-            current += inc;
+        if (channel == 0 && target != currentL)
+            currentL += incL;
+        else if (channel != 0 && target != currentR)
+            currentR += incR;
     }
     
     void outCheck()
     {
-        if (localTarget != current)
-            current = localTarget;
+        if (target != currentL)
+            currentL = target;
+
+        if (target != currentR)
+            currentR = target;
     }
     
-    void updateTarget (float newTarget)
+    void update (float newTarget)
     {
         target = newTarget;
+        incL = (target - currentL) / numSamples;
+        incR = (target - currentR) / numSamples;
     }
     
-    float getCurrent()
+    float getCurrent (int channel)
     {
-        return current;
-    }
-    
-    float getTarget()
-    {
-        return target;
+        if (channel == 0)
+            return currentL;
+        else
+            return currentR;
     }
     
 private:
     
-    float current = 0.0f;
+    float currentL = 0.0f;
+    float currentR = 0.0f;
     float target = 0.0f;
-    float inc = 0.0f;
-    float localTarget = 0.0f;
+    float incL = 0.0f;
+    float incR = 0.0f;
+    int numSamples = 0;
     
 };
