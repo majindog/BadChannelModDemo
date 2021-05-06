@@ -16,7 +16,7 @@ BadChannelModDemoAudioProcessor::BadChannelModDemoAudioProcessor()
 {
     apvts.addParameterListener("Delay", this);
     apvts.addParameterListener("Width", this);
-    apvts.addParameterListener("Depth", this);
+    apvts.addParameterListener("Mix", this);
     apvts.addParameterListener("Rate", this);
     apvts.addParameterListener("Feedback", this);
 }
@@ -53,11 +53,11 @@ void BadChannelModDemoAudioProcessor::prepareToPlay (double sampleRate, int samp
     invSampleRate = 1.0f / sampleRate;
     
     // smooth initialize
-    delaySmoothed.prepare (delayParam.get(), samplesPerBlock);
-    widthSmoothed.prepare (widthParam.get(), samplesPerBlock);
-    depthSmoothed.prepare (depthParam.get(), samplesPerBlock);
-    rateSmoothed.prepare (rateParam.get(), samplesPerBlock);
-    feedbackSmoothed.prepare (feedbackParam.get(), samplesPerBlock);
+    delaySmoothed.prepare (delayParam.get(), scalar);
+    widthSmoothed.prepare (widthParam.get(), scalar);
+    mixSmoothed.prepare (mixParam.get(), scalar);
+    rateSmoothed.prepare (rateParam.get(), scalar);
+    feedbackSmoothed.prepare (feedbackParam.get(), scalar);
 }
 
 void BadChannelModDemoAudioProcessor::releaseResources()
@@ -78,13 +78,6 @@ void BadChannelModDemoAudioProcessor::processBlock (juce::AudioBuffer<float>& bu
     
     for (int channel = 0; channel < totalNumInputChannels; ++channel) {
         
-        // smooth set
-        delaySmoothed.setInc(channel);
-        widthSmoothed.setInc(channel);
-        depthSmoothed.setInc(channel);
-        rateSmoothed.setInc(channel);
-        feedbackSmoothed.setInc(channel);
-        
         float* currentChan = buffer.getWritePointer (channel);
     
         for (int sample = 0; sample < numSamples; ++sample) {
@@ -92,7 +85,7 @@ void BadChannelModDemoAudioProcessor::processBlock (juce::AudioBuffer<float>& bu
             // smooth check
             delaySmoothed.loopCheck(channel);
             widthSmoothed.loopCheck(channel);
-            depthSmoothed.loopCheck(channel);
+            mixSmoothed.loopCheck(channel);
             rateSmoothed.loopCheck(channel);
             feedbackSmoothed.loopCheck(channel);
         
@@ -117,14 +110,6 @@ void BadChannelModDemoAudioProcessor::processBlock (juce::AudioBuffer<float>& bu
             }
         }
     }
-    
-    // smooth check
-    delaySmoothed.outCheck();
-    widthSmoothed.outCheck();
-    depthSmoothed.outCheck();
-    rateSmoothed.outCheck();
-    feedbackSmoothed.outCheck();
-    
 }
 
 float BadChannelModDemoAudioProcessor::lfo (float phase)
@@ -153,7 +138,7 @@ void BadChannelModDemoAudioProcessor::processMod (dsp::DelayLine<float, dsp::Del
     else
         weight = 1.0f - ((float)lineNumber / 2.0f);
     
-    *modOut += dSample * depthSmoothed.getCurrent(channel) * weight;
+    *modOut += dSample * mixSmoothed.getCurrent(channel) * weight;
     
     mFeedback = feedbackSmoothed.getCurrent(channel) * dSample;
     dLine->pushSample(channel, sample + mFeedback);
@@ -171,9 +156,9 @@ void BadChannelModDemoAudioProcessor::parameterChanged (const String &parameterI
         widthParam = newValue;
         widthSmoothed.update(newValue);
     }
-    else if (parameterID == "Depth") {
-        depthParam = newValue;
-        depthSmoothed.update(newValue);
+    else if (parameterID == "Mix") {
+        mixParam = newValue;
+        mixSmoothed.update(newValue);
     }
     else if (parameterID == "Rate") {
         rateParam = newValue;
@@ -189,12 +174,14 @@ AudioProcessorValueTreeState::ParameterLayout BadChannelModDemoAudioProcessor::c
 {
     std::vector<std::unique_ptr<RangedAudioParameter>> params;
     
-    params.push_back(std::make_unique<AudioParameterFloat>("Delay", "Delay", NormalisableRange<float>(1.0f, 50.0f, 0.01f), 5.0f, "ms"));
-    params.push_back(std::make_unique<AudioParameterFloat>("Width", "Width", NormalisableRange<float>(1.0f, 50.0f, 0.01f), 20.0f, "Hz"));
-    params.push_back(std::make_unique<AudioParameterFloat>("Depth", "Depth", 0.0f, 1.0f, 1.0f));
-    params.push_back(std::make_unique<AudioParameterFloat>("Rate", "Rate", NormalisableRange<float>(0.03f, 10.0f, 0.01f), 0.2f, "Hz"));
+    NormalisableRange<float> rateRange (0.03f, 10.0f, 0.001f);
+    rateRange.setSkewForCentre (sqrt (0.03f * 10.0f));
+    
+    params.push_back(std::make_unique<AudioParameterFloat>("Delay", "Delay", NormalisableRange<float>(1.0f, 50.0f, 0.001f), 5.0f, "ms"));
+    params.push_back(std::make_unique<AudioParameterFloat>("Width", "Width", NormalisableRange<float>(1.0f, 50.0f, 0.001f), 20.0f, "Hz"));
+    params.push_back(std::make_unique<AudioParameterFloat>("Mix", "Mix", 0.0f, 1.0f, 1.0f));
+    params.push_back(std::make_unique<AudioParameterFloat>("Rate", "Rate", rateRange, 0.2f, "Hz"));
     params.push_back(std::make_unique<AudioParameterFloat>("Feedback", "Feedback", 0.0f, 0.99f, 0.0f));
-    params.push_back(std::make_unique<AudioParameterFloat>("Mix", "Mix", 0.0f, 1.0f, 0.5f));
     
     return { params.begin(), params.end() };
 }

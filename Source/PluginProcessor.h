@@ -68,7 +68,7 @@ public:
     
     Atomic<float> delayParam { 5.0f };
     Atomic<float> widthParam { 20.0f };
-    Atomic<float> depthParam { 1.0f };
+    Atomic<float> mixParam { 1.0f };
     Atomic<float> rateParam { 0.2f };
     Atomic<float> feedbackParam { 0.0f };
     
@@ -77,9 +77,11 @@ public:
     
     ParamSmoother delaySmoothed;
     ParamSmoother widthSmoothed;
-    ParamSmoother depthSmoothed;
+    ParamSmoother mixSmoothed;
     ParamSmoother rateSmoothed;
     ParamSmoother feedbackSmoothed;
+    
+    float scalar = 0.001f;
 
 private:
     

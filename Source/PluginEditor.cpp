@@ -85,15 +85,15 @@ void BadChannelModDemoAudioProcessorEditor::resized()
                     
         // mod sliders
         if(sliderName == "Rate")
-            components[i]->setBoundsRelative(0.05f, 0.47f, paramSize, paramSize);
+            components[i]->setBoundsRelative(0.05f, 0.475f, paramSize, paramSize);
         else if(sliderName == "Width")
-            components[i]->setBoundsRelative(0.22f, 0.47f, paramSize, paramSize);
+            components[i]->setBoundsRelative(0.22f, 0.475f, paramSize, paramSize);
         else if(sliderName == "Delay")
-            components[i]->setBoundsRelative(0.39f, 0.47f, paramSize, paramSize);
+            components[i]->setBoundsRelative(0.39f, 0.475f, paramSize, paramSize);
         else if(sliderName == "Feedback")
-            components[i]->setBoundsRelative(0.56f, 0.47f, paramSize, paramSize);
-        else if(sliderName == "Depth")
-            components[i]->setBoundsRelative(0.73f, 0.47f, paramSize, paramSize);
+            components[i]->setBoundsRelative(0.56f, 0.475f, paramSize, paramSize);
+        else if(sliderName == "Mix")
+            components[i]->setBoundsRelative(0.73f, 0.475f, paramSize, paramSize);
 
         // glow
         components[i]->setComponentEffect(&glow);

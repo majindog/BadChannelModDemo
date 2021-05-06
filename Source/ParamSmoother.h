@@ -4,61 +4,40 @@ class ParamSmoother
 {
 public:
     
-    void prepare (float initVal, int nSamples)
+    void prepare (float initVal, float initScalar)
     {
-        currentL = initVal;
-        currentR = initVal;
+        valLeft = initVal;
+        valRight = initVal;
         target = initVal;
-        numSamples = nSamples;
-    }
-    
-    void setInc (int channel)
-    {
-        if (channel == 0)
-            incL = (target - currentL) / numSamples;
-        else
-            incR = (target - currentR) / numSamples;
+        scalar = initScalar;
     }
     
     void loopCheck (int channel)
     {
-        if (channel == 0 && target != currentL)
-            currentL += incL;
-        else if (channel != 0 && target != currentR)
-            currentR += incR;
-    }
-    
-    void outCheck()
-    {
-        if (target != currentL)
-            currentL = target;
-
-        if (target != currentR)
-            currentR = target;
-    }
-    
-    void update (float newTarget)
-    {
-        target = newTarget;
-        incL = (target - currentL) / numSamples;
-        incR = (target - currentR) / numSamples;
+        if (channel == 0)
+            valLeft = valLeft - scalar * (valLeft - target);
+        else
+            valRight = valRight - scalar * (valRight - target);
     }
     
     float getCurrent (int channel)
     {
         if (channel == 0)
-            return currentL;
+            return valLeft;
         else
-            return currentR;
+            return valRight;
+    }
+    
+    void update (float newTarget)
+    {
+        target = newTarget;
     }
     
 private:
     
-    float currentL = 0.0f;
-    float currentR = 0.0f;
-    float target = 0.0f;
-    float incL = 0.0f;
-    float incR = 0.0f;
-    int numSamples = 0;
+    float valLeft;
+    float valRight;
+    float scalar;
+    float target;
     
 };
