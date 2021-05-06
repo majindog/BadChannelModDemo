@@ -51,6 +51,15 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES">
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "752ED440D51E6264E9434805"
+            BuildableName = "BadChannelModDemo - All"
+            BlueprintName = "BadChannelModDemo - All"
+            ReferencedContainer = "container:BadChannelModDemo.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
       <CommandLineArguments>
          <CommandLineArgument
             argument = "-v aufx bpas appl"
