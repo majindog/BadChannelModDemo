@@ -35,6 +35,10 @@ BadChannelModDemoAudioProcessorEditor::BadChannelModDemoAudioProcessorEditor (Ba
 
         SliderAttachment* aSliderAttachment;
         sliderAttachments.add (aSliderAttachment = new SliderAttachment (processor.apvts, parameter->paramID, *aSlider));
+        
+        // set display percision
+        aSlider->textFromValueFunction = nullptr;
+        aSlider->setNumDecimalPlacesToDisplay(2);
                 
         components.add (aSlider);
                 

@@ -28,18 +28,18 @@ BadChannelModDemoAudioProcessor::~BadChannelModDemoAudioProcessor()
 //==============================================================================
 void BadChannelModDemoAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // delay line size set
-    mMod1 = dsp::DelayLine<float, dsp::DelayLineInterpolationTypes::Lagrange3rd>(sampleRate);
-    mMod2 = dsp::DelayLine<float, dsp::DelayLineInterpolationTypes::Lagrange3rd>(sampleRate);
-    mMod3 = dsp::DelayLine<float, dsp::DelayLineInterpolationTypes::Lagrange3rd>(sampleRate);
-    
     // dsp spec
     dsp::ProcessSpec spec;
     spec.maximumBlockSize = samplesPerBlock;
     spec.sampleRate = sampleRate;
     spec.numChannels = getTotalNumInputChannels();
     
-    // mod
+    // delay line size set
+    mMod1 = dsp::DelayLine<float, dsp::DelayLineInterpolationTypes::Lagrange3rd>(sampleRate);
+    mMod2 = dsp::DelayLine<float, dsp::DelayLineInterpolationTypes::Lagrange3rd>(sampleRate);
+    mMod3 = dsp::DelayLine<float, dsp::DelayLineInterpolationTypes::Lagrange3rd>(sampleRate);
+    
+    // delay line set
     mMod1.reset();
     mMod2.reset();
     mMod3.reset();
@@ -67,16 +67,16 @@ void BadChannelModDemoAudioProcessor::releaseResources()
 void BadChannelModDemoAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels  = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
+    auto numInputChannels  = getTotalNumInputChannels();
+    auto numOutputChannels = getTotalNumOutputChannels();
     auto numSamples = buffer.getNumSamples();
 
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+    for (auto i = numInputChannels; i < numOutputChannels; ++i)
         buffer.clear (i, 0, numSamples);
 
     //======================================
     
-    for (int channel = 0; channel < totalNumInputChannels; ++channel) {
+    for (int channel = 0; channel < numInputChannels; ++channel) {
         
         float* currentChan = buffer.getWritePointer (channel);
     
@@ -108,8 +108,8 @@ void BadChannelModDemoAudioProcessor::processBlock (juce::AudioBuffer<float>& bu
                 if (lfoPhaseR >= 1.0f)
                     lfoPhaseR -= 1.0f;
             }
-        }
-    }
+        } // end sample loop
+    } // end channel loop
 }
 
 float BadChannelModDemoAudioProcessor::lfo (float phase)
@@ -178,10 +178,10 @@ AudioProcessorValueTreeState::ParameterLayout BadChannelModDemoAudioProcessor::c
     rateRange.setSkewForCentre (sqrt (0.03f * 10.0f));
     
     params.push_back(std::make_unique<AudioParameterFloat>("Delay", "Delay", NormalisableRange<float>(1.0f, 50.0f, 0.001f), 5.0f, "ms"));
-    params.push_back(std::make_unique<AudioParameterFloat>("Width", "Width", NormalisableRange<float>(1.0f, 50.0f, 0.001f), 20.0f, "Hz"));
+    params.push_back(std::make_unique<AudioParameterFloat>("Width", "Width", NormalisableRange<float>(1.0f, 50.0f, 0.001f), 20.0f, "ms"));
     params.push_back(std::make_unique<AudioParameterFloat>("Mix", "Mix", 0.0f, 1.0f, 1.0f));
     params.push_back(std::make_unique<AudioParameterFloat>("Rate", "Rate", rateRange, 0.2f, "Hz"));
-    params.push_back(std::make_unique<AudioParameterFloat>("Feedback", "Feedback", 0.0f, 0.99f, 0.0f));
+    params.push_back(std::make_unique<AudioParameterFloat>("Feedback", "Feedback", 0.0f, 0.95f, 0.0f));
     
     return { params.begin(), params.end() };
 }
@@ -193,16 +193,18 @@ AudioProcessorValueTreeState& BadChannelModDemoAudioProcessor::getValueTreeState
 
 void BadChannelModDemoAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    MemoryOutputStream stream(destData, false);
-    apvts.state.writeToStream (stream);
+    auto state = apvts.copyState();
+    std::unique_ptr<XmlElement> xml (state.createXml());
+    copyXmlToBinary (*xml, destData);
 }
 
 void BadChannelModDemoAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    ValueTree tree = ValueTree::readFromData (data, sizeInBytes);
-    if (tree.isValid()) {
-        apvts.state = tree;
-    }
+    std::unique_ptr<XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
+    
+    if (xmlState.get() != nullptr)
+        if (xmlState->hasTagName (apvts.state.getType()))
+            apvts.replaceState (ValueTree::fromXml (*xmlState));
 }
 
 //==============================================================================

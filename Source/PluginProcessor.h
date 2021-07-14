@@ -49,9 +49,9 @@ public:
     
     //============================================================================== MODULATION
     
-    dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Lagrange3rd> mMod1;
-    dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Lagrange3rd> mMod2;
-    dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Lagrange3rd> mMod3;
+    dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Lagrange3rd> mMod1{96000};
+    dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Lagrange3rd> mMod2{96000};
+    dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Lagrange3rd> mMod3{96000};
     
     float lfoPhaseL;
     float lfoPhaseR;
